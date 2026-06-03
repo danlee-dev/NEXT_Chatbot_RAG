@@ -280,14 +280,13 @@ export function Chat() {
               width: isMobile ? INSP_W : undefined,
             }}
           >
-            <div className="flex h-full w-[340px] flex-col gap-5 px-5 py-5 overflow-y-auto">
-              <IngestPanel
-                sessionSources={sessionSources}
-                onAdd={handleAddSource}
-                onRemove={handleRemoveSource}
-              />
-              <SourcePanel sources={latestSources} highlightN={highlightN} />
-            </div>
+            <InspectorTabs
+              sessionSources={sessionSources}
+              onAdd={handleAddSource}
+              onRemove={handleRemoveSource}
+              sources={latestSources}
+              highlightN={highlightN}
+            />
           </motion.aside>
         ) : null}
       </AnimatePresence>
@@ -309,6 +308,132 @@ export function Chat() {
           />
         ) : null}
       </AnimatePresence>
+    </div>
+  );
+}
+
+type InspectorTab = "sources" | "session";
+
+function InspectorTabs({
+  sessionSources,
+  onAdd,
+  onRemove,
+  sources,
+  highlightN,
+}: {
+  sessionSources: SessionSource[];
+  onAdd: (s: SessionSource) => void;
+  onRemove: (url: string) => void;
+  sources: SourceItem[];
+  highlightN: number | null;
+}) {
+  const [tab, setTab] = useState<InspectorTab>("sources");
+  const prevTab = useRef<InspectorTab>("sources");
+  useEffect(() => {
+    prevTab.current = tab;
+  }, [tab]);
+
+  const direction = tab === "sources" ? -1 : 1;
+
+  return (
+    <div className="flex h-full w-[340px] flex-col px-4 pt-4 pb-5 overflow-hidden">
+      <TabBar
+        tab={tab}
+        setTab={setTab}
+        sourceCount={sources.length}
+        sessionCount={sessionSources.length}
+      />
+
+      <div className="relative mt-4 flex-1 overflow-hidden">
+        <AnimatePresence mode="wait" initial={false} custom={direction}>
+          <motion.div
+            key={tab}
+            custom={direction}
+            initial={{ opacity: 0, x: direction * 24 }}
+            animate={{ opacity: 1, x: 0 }}
+            exit={{ opacity: 0, x: -direction * 24 }}
+            transition={{ type: "spring", stiffness: 380, damping: 32 }}
+            className="absolute inset-0 overflow-y-auto pr-1"
+          >
+            {tab === "sources" ? (
+              <SourcePanel sources={sources} highlightN={highlightN} />
+            ) : (
+              <IngestPanel
+                sessionSources={sessionSources}
+                onAdd={onAdd}
+                onRemove={onRemove}
+              />
+            )}
+          </motion.div>
+        </AnimatePresence>
+      </div>
+    </div>
+  );
+}
+
+function TabBar({
+  tab,
+  setTab,
+  sourceCount,
+  sessionCount,
+}: {
+  tab: InspectorTab;
+  setTab: (t: InspectorTab) => void;
+  sourceCount: number;
+  sessionCount: number;
+}) {
+  const tabs: { id: InspectorTab; label: string; count: number }[] = [
+    { id: "sources", label: "출처", count: sourceCount },
+    { id: "session", label: "세션", count: sessionCount },
+  ];
+  return (
+    <div
+      className="relative flex w-full items-center gap-1 p-1"
+      style={{
+        background: "var(--surface-2)",
+        borderRadius: "var(--r-pill)",
+      }}
+    >
+      {tabs.map((t) => {
+        const active = tab === t.id;
+        return (
+          <button
+            key={t.id}
+            type="button"
+            onClick={() => setTab(t.id)}
+            className="relative flex-1 px-3 py-1.5 text-[12.5px] font-semibold tracking-tight"
+            style={{
+              color: active ? "var(--fg)" : "var(--fg-subtle)",
+              transition: "color 200ms",
+              borderRadius: "var(--r-pill)",
+            }}
+          >
+            {active ? (
+              <motion.span
+                layoutId="tab-pill"
+                className="absolute inset-0"
+                style={{
+                  background: "var(--surface-1)",
+                  borderRadius: "var(--r-pill)",
+                  boxShadow: "var(--elev-1)",
+                }}
+                transition={{ type: "spring", stiffness: 420, damping: 32 }}
+              />
+            ) : null}
+            <span className="relative inline-flex items-center gap-1.5">
+              {t.label}
+              {t.count > 0 ? (
+                <span
+                  className="font-mono text-[10px] tabular-nums"
+                  style={{ color: active ? "var(--highlight)" : "var(--fg-subtle)" }}
+                >
+                  {t.count}
+                </span>
+              ) : null}
+            </span>
+          </button>
+        );
+      })}
     </div>
   );
 }
