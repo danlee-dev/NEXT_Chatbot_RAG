@@ -9,7 +9,19 @@ const DB_FILENAME = "rag.db";
 
 function resolveDbPath(): string {
   if (process.env.RAG_DB_PATH) return process.env.RAG_DB_PATH;
-  return path.join(process.cwd(), "data", DB_FILENAME);
+
+  const candidates = [
+    // Vercel: traced data file ends up under the function root
+    path.join(process.cwd(), "data", DB_FILENAME),
+    // Some runtimes execute from .next/standalone
+    path.join(process.cwd(), ".next", "server", "data", DB_FILENAME),
+    // Build-output absolute fallback (Vercel function bundle)
+    "/var/task/data/" + DB_FILENAME,
+  ];
+  for (const p of candidates) {
+    if (fs.existsSync(p)) return p;
+  }
+  return candidates[0]; // 첫 후보로 throw 시 메시지에 노출
 }
 
 let cached: Database.Database | null = null;
@@ -24,8 +36,13 @@ export function openDb(mode: DbMode = "readonly"): Database.Database {
 
   const dbPath = resolveDbPath();
   if (mode === "readonly" && !fs.existsSync(dbPath)) {
+    let listing = "";
+    try {
+      const dir = path.dirname(dbPath);
+      listing = `(cwd=${process.cwd()}, dir=${dir}, dirExists=${fs.existsSync(dir)})`;
+    } catch {}
     throw new Error(
-      `rag.db not found at ${dbPath}. Run 'npm run ingest' first to build the dataset.`,
+      `rag.db not found at ${dbPath} ${listing}. Build pipeline likely failed to bundle the SQLite asset.`,
     );
   }
   if (mode === "readwrite") {
