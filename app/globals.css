@@ -20,6 +20,12 @@
   --ring: rgba(8, 145, 178, 0.45);
 
   --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
+  --shadow-card: 0 2px 4px rgba(15, 23, 42, 0.04), 0 12px 32px rgba(15, 23, 42, 0.08);
+  --shadow-pop: 0 6px 16px rgba(15, 23, 42, 0.08), 0 24px 56px rgba(15, 23, 42, 0.12);
+  --r-sm: 8px;
+  --r-md: 14px;
+  --r-lg: 20px;
+  --r-xl: 26px;
 }
 
 [data-theme="dark"], html.dark {
@@ -42,6 +48,8 @@
   --ring: rgba(103, 232, 249, 0.5);
 
   --shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.55);
+  --shadow-card: 0 2px 4px rgba(0, 0, 0, 0.35), 0 16px 40px rgba(0, 0, 0, 0.45);
+  --shadow-pop: 0 6px 24px rgba(0, 0, 0, 0.55), 0 32px 80px rgba(0, 0, 0, 0.6);
 }
 
 @theme inline {

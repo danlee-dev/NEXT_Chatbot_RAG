@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { useChat } from "@ai-sdk/react";
 import { DefaultChatTransport } from "ai";
+import { motion, AnimatePresence } from "framer-motion";
 
 import { CharacterCard } from "@/components/CharacterCard";
 import { MessageList } from "@/components/MessageList";
@@ -47,11 +48,62 @@ export function Chat() {
   const isBusy = status === "submitted" || status === "streaming";
 
   const latestSources = useMemo<SourceItem[]>(() => {
+    // 가장 최근 assistant 메시지에서 tool-rag_search / tool-fetch_url /
+    // tool-compare_tools / tool-find_code_examples 결과들을 모두 수집해 카드로.
     for (let i = messages.length - 1; i >= 0; i--) {
       const m = messages[i];
       if (m.role !== "assistant") continue;
-      const meta = m.metadata as { sources?: SourceItem[] } | undefined;
-      if (meta?.sources?.length) return meta.sources;
+      const collected: SourceItem[] = [];
+      let n = 1;
+      type PartLite = {
+        type: string;
+        state?: string;
+        output?: unknown;
+      };
+      const parts = (m.parts ?? []) as PartLite[];
+      for (const part of parts) {
+        if (part.state !== "output-available") continue;
+        const out = part.output as Record<string, unknown> | undefined;
+        if (!out) continue;
+        const pushResults = (arr: unknown, kind: "rag" | "session") => {
+          if (!Array.isArray(arr)) return;
+          for (const r of arr as Array<Record<string, unknown>>) {
+            collected.push({
+              n: n++,
+              url: (r.url as string | null) ?? null,
+              title: (r.title as string | null) ?? null,
+              tag: (r.tag as string | null) ?? null,
+              type: (r.type as string | null) ?? null,
+              content: (r.snippet as string | undefined) ?? "",
+              score: typeof r.score === "number" ? r.score : 0,
+              kind,
+            });
+          }
+        };
+        if (part.type === "tool-rag_search") pushResults(out.results, "rag");
+        if (part.type === "tool-find_code_examples") pushResults(out.results, "rag");
+        if (part.type === "tool-compare_tools") {
+          pushResults(out.leftResults, "rag");
+          pushResults(out.rightResults, "rag");
+        }
+        if (part.type === "tool-fetch_url") {
+          const snippets = out.snippets as string[] | undefined;
+          if (snippets?.length) {
+            collected.push({
+              n: n++,
+              url: (out.url as string) ?? null,
+              title: (out.title as string) ?? null,
+              tag: "fetched",
+              type: "fetched",
+              content: snippets.join("\n\n"),
+              score: 0,
+              kind: "session",
+            });
+          }
+        }
+        if (part.type === "tool-web_search") pushResults(out.results, "rag");
+      }
+      if (collected.length > 0) return collected;
     }
     return [];
   }, [messages]);
@@ -199,15 +251,21 @@ export function Chat() {
       </aside>
 
       {/* mobile backdrop */}
-      {(showNav || showInspector) ? (
-        <div
-          className="fixed inset-0 z-20 bg-black/40 lg:hidden"
-          onClick={() => {
-            setShowNav(false);
-            setShowInspector(false);
-          }}
-        />
-      ) : null}
+      <AnimatePresence>
+        {(showNav || showInspector) ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            className="fixed inset-0 z-20 bg-black/40 lg:hidden"
+            onClick={() => {
+              setShowNav(false);
+              setShowInspector(false);
+            }}
+          />
+        ) : null}
+      </AnimatePresence>
     </div>
   );
 }

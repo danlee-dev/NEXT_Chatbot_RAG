@@ -1,7 +1,7 @@
-import { streamText, convertToModelMessages, type UIMessage } from "ai";
+import { streamText, convertToModelMessages, stepCountIs, type UIMessage } from "ai";
 import { chatModel } from "@/lib/ai/model";
 import { buildSystemPrompt } from "@/lib/ai/prompts";
-import { runRag, buildRagContext } from "@/lib/rag/orchestrate";
+import { stackSageTools } from "@/lib/tools";
 import {
   MAX_INPUT_CHARS,
   MAX_OUTPUT_TOKENS,
@@ -10,6 +10,7 @@ import {
 } from "@/lib/utils/limits";
 
 export const runtime = "nodejs";
+export const maxDuration = 60;
 
 type SessionSource = {
   url: string;
@@ -57,20 +58,7 @@ export async function POST(req: Request) {
   const trimmedMessages = messages.slice(-MAX_HISTORY_MESSAGES);
 
   let systemPrompt = buildSystemPrompt();
-  let ragChunks: Awaited<ReturnType<typeof runRag>>["chunks"] = [];
-  let ragRewrite: Awaited<ReturnType<typeof runRag>>["rewrite"] | null = null;
-
-  try {
-    const rag = await runRag(lastText);
-    ragChunks = rag.chunks;
-    ragRewrite = rag.rewrite;
-    const ctx = buildRagContext(rag.chunks);
-    if (ctx) systemPrompt = `${systemPrompt}\n\n${ctx}`;
-  } catch (err) {
-    console.error("[chat] RAG 실패 (RAG 없이 진행):", err);
-  }
-
-  const sessionBlock = buildSessionSourcesBlock(sessionSources, ragChunks.length);
+  const sessionBlock = buildSessionSourcesBlock(sessionSources);
   if (sessionBlock) systemPrompt = `${systemPrompt}\n\n${sessionBlock}`;
 
   try {
@@ -79,40 +67,13 @@ export async function POST(req: Request) {
       model: chatModel,
       system: systemPrompt,
       messages: modelMessages,
+      tools: stackSageTools,
+      stopWhen: stepCountIs(6),
       maxOutputTokens: MAX_OUTPUT_TOKENS,
       temperature: TEMPERATURE,
     });
 
-    const sessionOffset = ragChunks.length;
-    return result.toUIMessageStreamResponse({
-      messageMetadata: () => ({
-        sources: [
-          ...ragChunks.map((c, i) => ({
-            n: i + 1,
-            url: c.url,
-            title: c.title,
-            tag: c.sourceTag,
-            type: c.sourceType,
-            content: c.content,
-            score: c.score,
-            kind: "rag" as const,
-          })),
-          ...(sessionSources ?? []).flatMap((s, i) => [
-            {
-              n: sessionOffset + i + 1,
-              url: s.url,
-              title: s.title ?? null,
-              tag: "session" as string | null,
-              type: "session" as string | null,
-              content: s.snippets.join("\n\n"),
-              score: 0,
-              kind: "session" as const,
-            },
-          ]),
-        ],
-        rewrite: ragRewrite,
-      }),
-    });
+    return result.toUIMessageStreamResponse();
   } catch (err) {
     console.error("[/api/chat] streamText 실패:", err);
     return Response.json(
@@ -130,15 +91,11 @@ function extractText(message: UIMessage): string {
     .join("");
 }
 
-function buildSessionSourcesBlock(
-  sources: SessionSource[] | undefined,
-  ragCount: number,
-): string {
+function buildSessionSourcesBlock(sources: SessionSource[] | undefined): string {
   if (!sources || sources.length === 0) return "";
   const blocks = sources.map((s, i) => {
-    const n = ragCount + i + 1;
     return [
-      `[${n}] ${s.title ?? s.url} (사용자 추가)`,
+      `## [session-${i + 1}] ${s.title ?? s.url}`,
       `URL: ${s.url}`,
       "",
       s.snippets.join("\n\n"),
@@ -146,7 +103,7 @@ function buildSessionSourcesBlock(
   });
   return [
     "# 사용자가 세션에 추가한 자료 (URL ingest)",
-    "이 자료도 위의 근거 자료와 동등하게 인용해도 된다. 인용 번호는 이어서 매긴다.",
+    "이 자료도 rag_search 결과와 동등하게 인용 가능. 인용 라벨: [session-N]",
     "",
     blocks.join("\n\n---\n\n"),
   ].join("\n");

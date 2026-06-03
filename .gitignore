@@ -44,3 +44,4 @@ next-env.d.ts
 data/*-wal
 data/*-shm
 data/*.log
+data/raw/

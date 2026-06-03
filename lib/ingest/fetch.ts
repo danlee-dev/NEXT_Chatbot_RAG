@@ -10,6 +10,7 @@ export type FetchedDoc = {
   url: string;
   title: string;
   markdown: string;
+  lastModified?: number;
 };
 
 export async function fetchAndExtract(url: string, timeoutMs = 20_000): Promise<FetchedDoc> {
@@ -27,14 +28,20 @@ export async function fetchAndExtract(url: string, timeoutMs = 20_000): Promise<
     });
     if (!res.ok) throw new Error(`HTTP ${res.status} ${res.statusText}`);
     const contentType = res.headers.get("content-type") ?? "";
+    const lastModRaw = res.headers.get("last-modified");
+    const lastModified = lastModRaw ? Date.parse(lastModRaw) : undefined;
 
     if (contentType.includes("application/json")) {
       const json = await res.json();
-      return jsonToDoc(url, json);
+      const doc = jsonToDoc(url, json);
+      if (lastModified && !Number.isNaN(lastModified)) doc.lastModified = lastModified;
+      return doc;
     }
 
     const html = await res.text();
-    return htmlToDoc(url, html);
+    const doc = htmlToDoc(url, html);
+    if (lastModified && !Number.isNaN(lastModified)) doc.lastModified = lastModified;
+    return doc;
   } finally {
     clearTimeout(timer);
   }

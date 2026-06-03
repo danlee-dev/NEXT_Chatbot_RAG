@@ -4,6 +4,8 @@ import { Children, cloneElement, isValidElement, useEffect, useRef, type ReactNo
 import type { UIMessage } from "ai";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { motion, AnimatePresence } from "framer-motion";
+import { ToolCard } from "@/components/ToolCard";
 
 const FOLLOWUPS = [
   "방금 답변 출처 [1] 자세히 보여줘",
@@ -108,6 +110,16 @@ function EmptyState({ onSuggestionClick }: { onSuggestionClick: (t: string) => v
   );
 }
 
+type AnyPart = {
+  type: string;
+  text?: string;
+  state?: "input-streaming" | "input-available" | "output-available" | "output-error";
+  toolCallId?: string;
+  input?: unknown;
+  output?: unknown;
+  errorText?: string;
+};
+
 function Bubble({
   message,
   onCitationClick,
@@ -116,55 +128,106 @@ function Bubble({
   onCitationClick: (n: number) => void;
 }) {
   const isUser = message.role === "user";
-  const text = message.parts
-    .filter((p): p is { type: "text"; text: string } => p.type === "text")
-    .map((p) => p.text)
-    .join("");
+  const parts = (message.parts ?? []) as AnyPart[];
 
   if (isUser) {
+    const text = parts.filter((p) => p.type === "text").map((p) => p.text ?? "").join("");
     return (
-      <div className="anim-fade-up flex justify-end">
+      <motion.div
+        layout
+        initial={{ opacity: 0, y: 6 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ type: "spring", stiffness: 420, damping: 32 }}
+        className="flex justify-end"
+      >
         <div
-          className="max-w-[78%] whitespace-pre-wrap break-words rounded-[14px] px-4 py-2.5 text-[14px] leading-[1.55]"
+          className="max-w-[78%] whitespace-pre-wrap break-words text-[14px] leading-[1.55]"
           style={{
             background: "var(--bg-subtle)",
             color: "var(--fg)",
             border: "1px solid var(--border)",
-            borderBottomRightRadius: "6px",
+            borderRadius: "var(--r-lg)",
+            borderBottomRightRadius: 10,
+            padding: "10px 14px",
+            boxShadow: "var(--shadow-card)",
           }}
         >
           {text}
         </div>
-      </div>
+      </motion.div>
     );
   }
 
   return (
-    <article className="anim-fade-up flex gap-3">
+    <motion.article
+      layout
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+      className="flex gap-3"
+    >
       <div
         aria-hidden
-        className="mt-1 grid h-6 w-6 shrink-0 place-items-center rounded-[6px] font-mono text-[11px] font-semibold"
-        style={{ background: "var(--bg-subtle)", color: "var(--fg-muted)" }}
+        className="mt-1 grid h-7 w-7 shrink-0 place-items-center rounded-[10px] font-mono text-[12px] font-semibold"
+        style={{ background: "var(--bg-subtle)", color: "var(--fg)", border: "1px solid var(--border)" }}
       >
         S
       </div>
-      <div className="min-w-0 flex-1">
-        <div className="mb-1 flex items-baseline gap-2">
+      <div className="min-w-0 flex-1 space-y-2.5">
+        <div className="flex items-baseline gap-2">
           <span className="text-[12px] font-semibold tracking-tight" style={{ color: "var(--fg)" }}>
             Stack Sage
           </span>
-          <span className="text-[10.5px] uppercase tracking-[0.1em]" style={{ color: "var(--fg-subtle)" }}>
+          <span className="text-[10px] uppercase tracking-[0.12em]" style={{ color: "var(--fg-subtle)" }}>
             assistant
           </span>
         </div>
-        <div
-          className="text-[14px] leading-[1.65]"
-          style={{ color: "var(--fg)" }}
-        >
-          <RichText text={text} onCitationClick={onCitationClick} />
-        </div>
+
+        <AnimatePresence initial={false}>
+          {parts.map((part, i) => {
+            if (part.type === "text") {
+              return (
+                <motion.div
+                  key={`text-${i}`}
+                  layout
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="text-[14px] leading-[1.65]"
+                  style={{ color: "var(--fg)" }}
+                >
+                  <RichText text={part.text ?? ""} onCitationClick={onCitationClick} />
+                </motion.div>
+              );
+            }
+            if (part.type === "reasoning" && typeof part.text === "string") {
+              return (
+                <ReasoningBlock key={`r-${i}`} text={part.text} />
+              );
+            }
+            if (part.type.startsWith("tool-")) {
+              return <ToolCard key={part.toolCallId ?? `t-${i}`} part={part} />;
+            }
+            return null;
+          })}
+        </AnimatePresence>
       </div>
-    </article>
+    </motion.article>
+  );
+}
+
+function ReasoningBlock({ text }: { text: string }) {
+  return (
+    <div
+      className="text-[12px] leading-snug"
+      style={{
+        color: "var(--fg-subtle)",
+        borderLeft: "2px solid var(--border-strong)",
+        paddingLeft: 10,
+        fontStyle: "italic",
+      }}
+    >
+      {text}
+    </div>
   );
 }
 

@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
 import type { SourceItem } from "@/components/Chat";
 
 export function SourcePanel({
@@ -35,9 +36,21 @@ export function SourcePanel({
         </div>
       ) : (
         <ul className="flex flex-col gap-2 overflow-y-auto pr-1">
-          {sources.map((s) => (
-            <SourceCard key={s.n} source={s} highlighted={s.n === highlightN} />
-          ))}
+          <AnimatePresence initial={false}>
+            {sources.map((s, i) => (
+              <motion.li
+                key={`${s.n}-${s.url ?? s.title ?? i}`}
+                layout
+                initial={{ opacity: 0, y: 6, scale: 0.98 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: -4 }}
+                transition={{ type: "spring", stiffness: 380, damping: 32, delay: i * 0.025 }}
+                style={{ listStyle: "none" }}
+              >
+                <SourceCard source={s} highlighted={s.n === highlightN} />
+              </motion.li>
+            ))}
+          </AnimatePresence>
         </ul>
       )}
     </section>
@@ -49,15 +62,16 @@ function SourceCard({ source, highlighted }: { source: SourceItem; highlighted: 
   const host = source.url ? safeHost(source.url) : null;
 
   return (
-    <li
+    <div
       id={`src-${source.n}`}
       className={highlighted ? "anim-pulse" : ""}
       style={{
         background: "var(--bg-elevated)",
         border: `1px solid ${highlighted ? "var(--highlight)" : "var(--border)"}`,
-        borderRadius: 10,
+        borderRadius: "var(--r-md)",
         padding: "10px 12px",
-        transition: "border-color 200ms",
+        boxShadow: "var(--shadow-card)",
+        transition: "border-color 200ms, box-shadow 200ms",
       }}
     >
       <div className="flex items-start gap-2">
@@ -119,7 +133,7 @@ function SourceCard({ source, highlighted }: { source: SourceItem; highlighted: 
           </a>
         ) : null}
       </div>
-    </li>
+    </div>
   );
 }
 

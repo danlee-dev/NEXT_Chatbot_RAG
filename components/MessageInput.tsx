@@ -40,8 +40,13 @@ export function MessageInput({
   return (
     <form
       onSubmit={submit}
-      className="surface flex flex-col gap-2 px-3 pt-2.5 pb-2"
-      style={{ boxShadow: "var(--shadow-soft)" }}
+      className="flex flex-col gap-2 px-3 pt-2.5 pb-2"
+      style={{
+        background: "var(--bg-elevated)",
+        border: "1px solid var(--border)",
+        borderRadius: "var(--r-lg)",
+        boxShadow: "var(--shadow-card)",
+      }}
     >
       <textarea
         ref={taRef}

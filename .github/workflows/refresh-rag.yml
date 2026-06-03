@@ -1,0 +1,76 @@
+name: refresh-rag
+
+# Stack Sage 의 RAG 인덱스를 주기적으로 재임베딩.
+# - 매일 KST 06:00 (UTC 21:00) 자동 실행
+# - 수동 실행도 가능 (Run workflow 버튼)
+# 동작:
+#   1) repo checkout
+#   2) npm ci + npm run ingest (OPENAI_API_KEY = secrets)
+#   3) data/rag.db 가 갱신되면 commit + push → Vercel 자동 redeploy
+
+on:
+  schedule:
+    - cron: "0 21 * * *"   # 21:00 UTC = 06:00 KST
+  workflow_dispatch:
+    inputs:
+      only:
+        description: "Only ingest seeds with this tag (optional)"
+        required: false
+        default: ""
+
+permissions:
+  contents: write
+
+concurrency:
+  group: refresh-rag
+  cancel-in-progress: false
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 1
+          token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+          cache: "npm"
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Run ingest
+        env:
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+        run: |
+          if [ -n "${{ github.event.inputs.only }}" ]; then
+            npm run ingest -- --only=${{ github.event.inputs.only }}
+          else
+            npm run ingest
+          fi
+
+      - name: Show diff summary
+        run: |
+          git status --short
+          du -sh data/rag.db || true
+          ls data/raw/ | head -20 || true
+
+      - name: Commit + push (if changed)
+        run: |
+          git config user.name "stack-sage-bot"
+          git config user.email "bot@stack-sage.local"
+          git add data/rag.db
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          DOCS=$(node -e "const D=require('better-sqlite3'); const v=require('sqlite-vec'); const db=new D('data/rag.db',{readonly:true}); v.load(db); const r=db.prepare('SELECT COUNT(*) AS n FROM documents').get(); const c=db.prepare('SELECT COUNT(*) AS n FROM chunks').get(); console.log(r.n+'/'+c.n);")
+          DATE=$(date -u +"%Y-%m-%d")
+          git commit -m "chore(rag): refresh embeddings ($DATE, $DOCS docs/chunks)"
+          git push

@@ -56,13 +56,14 @@ export function closeDb(): void {
 
 export const SCHEMA_SQL = `
 CREATE TABLE IF NOT EXISTS documents (
-  id           INTEGER PRIMARY KEY AUTOINCREMENT,
-  url          TEXT UNIQUE,
-  source_type  TEXT NOT NULL,
-  source_tag   TEXT,
-  title        TEXT,
-  fetched_at   INTEGER NOT NULL,
-  raw_length   INTEGER NOT NULL
+  id            INTEGER PRIMARY KEY AUTOINCREMENT,
+  url           TEXT UNIQUE,
+  source_type   TEXT NOT NULL,
+  source_tag    TEXT,
+  title         TEXT,
+  fetched_at    INTEGER NOT NULL,
+  last_modified INTEGER,
+  raw_length    INTEGER NOT NULL
 );
 
 CREATE TABLE IF NOT EXISTS chunks (
