@@ -211,6 +211,7 @@ export function Chat() {
             <MessageList
               messages={messages}
               isStreaming={status === "streaming"}
+              isSubmitted={status === "submitted"}
               onCitationClick={handleCitationClick}
               onSuggestionClick={handleSend}
             />

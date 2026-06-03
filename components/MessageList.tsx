@@ -1,6 +1,6 @@
 "use client";
 
-import { Children, cloneElement, isValidElement, useEffect, useRef, type ReactNode } from "react";
+import { Children, cloneElement, isValidElement, useEffect, useRef, useState, type ReactNode } from "react";
 import type { UIMessage } from "ai";
 import ReactMarkdown from "react-markdown";
 import remarkGfm from "remark-gfm";
@@ -16,11 +16,13 @@ const FOLLOWUPS = [
 export function MessageList({
   messages,
   isStreaming,
+  isSubmitted,
   onCitationClick,
   onSuggestionClick,
 }: {
   messages: UIMessage[];
   isStreaming: boolean;
+  isSubmitted: boolean;
   onCitationClick: (n: number) => void;
   onSuggestionClick: (text: string) => void;
 }) {
@@ -28,25 +30,95 @@ export function MessageList({
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages, isStreaming]);
+  }, [messages, isStreaming, isSubmitted]);
 
   if (messages.length === 0) {
     return <EmptyState onSuggestionClick={onSuggestionClick} />;
   }
+
+  const last = messages[messages.length - 1];
+  // assistant 메시지가 아직 시작 안 됐을 때 (status submitted) thinking placeholder.
+  const needsPlaceholder = (isSubmitted || isStreaming) && last?.role === "user";
 
   return (
     <div className="flex flex-col gap-6">
       {messages.map((m) => (
         <Bubble key={m.id} message={m} onCitationClick={onCitationClick} />
       ))}
-      {isStreaming ? <TypingIndicator /> : null}
+      {needsPlaceholder ? <ThinkingPlaceholder /> : null}
 
-      {!isStreaming && messages[messages.length - 1]?.role === "assistant" ? (
+      {!isStreaming && !isSubmitted && last?.role === "assistant" ? (
         <FollowupRow onPick={onSuggestionClick} />
       ) : null}
 
       <div ref={bottomRef} />
     </div>
+  );
+}
+
+function ThinkingPlaceholder() {
+  return (
+    <motion.div
+      layout
+      initial={{ opacity: 0, y: 6 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ type: "spring", stiffness: 380, damping: 30 }}
+      className="flex gap-3"
+    >
+      <div
+        aria-hidden
+        className="mt-1 grid h-7 w-7 shrink-0 place-items-center rounded-[10px] font-mono text-[12px] font-semibold"
+        style={{ background: "var(--bg-subtle)", color: "var(--fg)", border: "1px solid var(--border)" }}
+      >
+        S
+      </div>
+      <div className="min-w-0 flex-1 space-y-2.5">
+        <div className="flex items-baseline gap-2">
+          <span className="text-[12px] font-semibold tracking-tight" style={{ color: "var(--fg)" }}>
+            Stack Sage
+          </span>
+          <span className="text-[10px] uppercase tracking-[0.12em]" style={{ color: "var(--fg-subtle)" }}>
+            thinking
+          </span>
+        </div>
+        <div className="flex items-center gap-2 text-[12.5px]" style={{ color: "var(--fg-muted)" }}>
+          <span className="inline-flex gap-[3px]">
+            <Dot delay="0ms" />
+            <Dot delay="120ms" />
+            <Dot delay="240ms" />
+          </span>
+          <RotatingHint />
+        </div>
+      </div>
+    </motion.div>
+  );
+}
+
+function RotatingHint() {
+  const hints = [
+    "질문 의도 파악 중",
+    "검색 키워드 재작성 중",
+    "RAG 인덱스 탐색 중",
+    "근거 자료 모으는 중",
+    "답변 구성 중",
+  ];
+  const [i, setI] = useState(0);
+  useEffect(() => {
+    const t = setInterval(() => setI((v) => (v + 1) % hints.length), 1400);
+    return () => clearInterval(t);
+  }, []);
+  return (
+    <AnimatePresence mode="wait">
+      <motion.span
+        key={i}
+        initial={{ opacity: 0, y: 3 }}
+        animate={{ opacity: 1, y: 0 }}
+        exit={{ opacity: 0, y: -3 }}
+        transition={{ duration: 0.18 }}
+      >
+        {hints[i]}…
+      </motion.span>
+    </AnimatePresence>
   );
 }
 
