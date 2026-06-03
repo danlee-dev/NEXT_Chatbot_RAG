@@ -19,7 +19,12 @@ export async function POST(req: Request) {
     const { chunks, rewrite } = await runRag(body.query);
     return Response.json({ chunks, rewrite });
   } catch (err) {
-    console.error("[/api/search] 검색 실패:", err);
-    return Response.json({ error: "검색 중 오류" }, { status: 500 });
+    const msg = err instanceof Error ? err.message : String(err);
+    const stack = err instanceof Error ? err.stack?.split("\n").slice(0, 6).join("\n") : "";
+    console.error("[/api/search] 검색 실패:", msg, stack);
+    return Response.json(
+      { error: "검색 중 오류", detail: msg, stack: stack ?? null },
+      { status: 500 },
+    );
   }
 }
