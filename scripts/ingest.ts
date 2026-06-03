@@ -178,6 +178,11 @@ async function main() {
     `[ingest done] docs=${docCount.n} chunks=${chunkCount.n} vectors=${vecCount.n} est_cost=$${totalCost.toFixed(4)}`,
   );
   console.log("[ingest tags]", tagBreakdown.slice(0, 20).map((t) => `${t.tag}:${t.docs}`).join(" "));
+
+  // Vercel readonly fs 에서 안전하게 열리도록 DELETE 모드로 전환 + WAL 체크포인트.
+  db.pragma("wal_checkpoint(TRUNCATE)");
+  db.pragma("journal_mode = DELETE");
+  db.exec("VACUUM");
   closeDb();
 }
 

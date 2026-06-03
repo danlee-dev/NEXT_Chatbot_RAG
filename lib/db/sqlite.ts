@@ -53,7 +53,10 @@ export function openDb(mode: DbMode = "readonly"): Database.Database {
     readonly: mode === "readonly",
     fileMustExist: mode === "readonly",
   });
-  db.pragma("journal_mode = WAL");
+  // WAL 은 readonly 환경(Vercel) 에선 fail — readwrite 일 때만 적용.
+  if (mode === "readwrite") {
+    db.pragma("journal_mode = WAL");
+  }
   db.pragma("foreign_keys = ON");
 
   sqliteVec.load(db);
