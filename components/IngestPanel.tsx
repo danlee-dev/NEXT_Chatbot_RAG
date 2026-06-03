@@ -60,7 +60,10 @@ export function IngestPanel({
         </span>
       </div>
 
-      <div className="surface-subtle flex items-center gap-1 p-1.5">
+      <div
+        className="flex items-center gap-1 p-1.5"
+        style={{ background: "var(--surface-2)", borderRadius: "var(--r-md)" }}
+      >
         <input
           type="url"
           value={url}
@@ -82,9 +85,8 @@ export function IngestPanel({
           disabled={!canSubmit}
           className="shrink-0 rounded-[6px] px-2 py-1 font-mono text-[11px] transition"
           style={{
-            background: canSubmit ? "var(--fg)" : "transparent",
-            color: canSubmit ? "var(--bg)" : "var(--fg-subtle)",
-            border: `1px solid ${canSubmit ? "transparent" : "var(--border)"}`,
+            background: canSubmit ? "var(--accent)" : "transparent",
+            color: canSubmit ? "var(--accent-fg)" : "var(--fg-subtle)",
             cursor: canSubmit ? "pointer" : "not-allowed",
           }}
         >
@@ -107,8 +109,8 @@ export function IngestPanel({
           {sessionSources.map((s) => (
             <li
               key={s.url}
-              className="group flex items-center justify-between gap-2 rounded-[8px] border px-2.5 py-1.5"
-              style={{ borderColor: "var(--border)", background: "var(--bg)" }}
+              className="group flex items-center justify-between gap-2 px-2.5 py-2"
+              style={{ background: "var(--surface-2)", borderRadius: "var(--r-md)" }}
             >
               <div className="min-w-0 flex-1">
                 <div

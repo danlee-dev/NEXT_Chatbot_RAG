@@ -8,7 +8,7 @@ export function CharacterCard({ character }: { character: CharacterConfig }) {
       <div className="flex items-center gap-2.5">
         <div
           className="grid h-9 w-9 place-items-center rounded-[10px] font-mono text-[15px] font-semibold"
-          style={{ background: "var(--bg-subtle)", color: "var(--fg)" }}
+          style={{ background: "var(--surface-2)", color: "var(--fg)" }}
         >
           §
         </div>

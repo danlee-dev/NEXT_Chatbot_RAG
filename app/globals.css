@@ -1,78 +1,135 @@
 @import url("https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css");
 @import "tailwindcss";
 
-:root {
-  --bg: #FAFAF9;
-  --bg-elevated: #FFFFFF;
-  --bg-subtle: #F4F4F2;
-  --fg: #18181B;
-  --fg-muted: #52525B;
-  --fg-subtle: #A1A1AA;
-  --border: rgba(0, 0, 0, 0.08);
-  --border-strong: rgba(0, 0, 0, 0.14);
-  --accent: #0F172A;            /* near-black ink for buttons */
-  --accent-fg: #FFFFFF;
-  --accent-subtle: rgba(15, 23, 42, 0.06);
-  --highlight: #0891B2;         /* cool teal for citations + focus */
-  --highlight-subtle: rgba(8, 145, 178, 0.10);
-  --success: #059669;
-  --warning: #B45309;
-  --danger: #DC2626;
-  --ring: rgba(8, 145, 178, 0.45);
+/*
+ * Stack Sage palette v3 — Material 3 / Gemini 영감.
+ *
+ * 핵심 원칙:
+ *  - 구분선 거의 안 씀. surface 끼리는 *tone shift + spacing + elevation* 으로 분리.
+ *  - elevation = (다층 그림자) + (subtle border highlight) + (subtle inner highlight).
+ *  - dark 가 default. light 는 paired.
+ *  - accent 보라/형광 X. 따뜻한 amber-cream + 차분한 ink.
+ */
 
-  --shadow-soft: 0 1px 2px rgba(0, 0, 0, 0.04), 0 8px 24px rgba(0, 0, 0, 0.06);
-  --shadow-card: 0 2px 4px rgba(15, 23, 42, 0.04), 0 12px 32px rgba(15, 23, 42, 0.08);
-  --shadow-pop: 0 6px 16px rgba(15, 23, 42, 0.08), 0 24px 56px rgba(15, 23, 42, 0.12);
-  --r-sm: 8px;
-  --r-md: 14px;
+:root {
+  /* surface tones (light) — Material 3 surface containers */
+  --bg:                #FBFAF7;   /* canvas (warm off-white) */
+  --surface-1:         #FFFFFF;   /* lowest elevation */
+  --surface-2:         #F6F4EE;   /* mid */
+  --surface-3:         #EFEBE0;   /* high (panels) */
+  --surface-input:     #F2EFE7;
+  --fg:                #1B1B1A;
+  --fg-muted:          #5B5953;
+  --fg-subtle:         #8E8B83;
+
+  /* hairlines only for inputs/cards that *really* need definition */
+  --hairline:          rgba(0, 0, 0, 0.06);
+  --hairline-strong:   rgba(0, 0, 0, 0.10);
+
+  /* monochrome ink button */
+  --accent:            #1B1B1A;
+  --accent-fg:         #FBFAF7;
+  --accent-subtle:     rgba(27, 27, 26, 0.06);
+
+  /* highlight = warm amber (citations, focus, success-ish) */
+  --highlight:         #B6772A;
+  --highlight-subtle:  rgba(182, 119, 42, 0.10);
+
+  --success:           #2F855A;
+  --warning:           #B45309;
+  --danger:            #B5322B;
+  --ring:              rgba(27, 27, 26, 0.18);
+
+  /* elevation (light) — Material 3 풍 다층 + tint */
+  --elev-1:
+    0 1px 2px rgba(27, 27, 26, 0.04),
+    0 1px 3px rgba(27, 27, 26, 0.04);
+  --elev-2:
+    0 1px 2px rgba(27, 27, 26, 0.05),
+    0 4px 12px rgba(27, 27, 26, 0.06);
+  --elev-3:
+    0 2px 4px rgba(27, 27, 26, 0.05),
+    0 12px 24px rgba(27, 27, 26, 0.08),
+    0 24px 48px rgba(27, 27, 26, 0.06);
+  --elev-pop:
+    0 4px 8px rgba(27, 27, 26, 0.06),
+    0 24px 60px rgba(27, 27, 26, 0.14);
+
+  /* radius scale (애플 라운드) */
+  --r-xs: 8px;
+  --r-sm: 12px;
+  --r-md: 16px;
   --r-lg: 20px;
-  --r-xl: 26px;
+  --r-xl: 28px;
+  --r-pill: 999px;
 }
 
 [data-theme="dark"], html.dark {
-  --bg: #0B0B0E;
-  --bg-elevated: #131318;
-  --bg-subtle: #1A1A20;
-  --fg: #ECECEE;
-  --fg-muted: #A1A1AA;
-  --fg-subtle: #71717A;
-  --border: rgba(255, 255, 255, 0.07);
-  --border-strong: rgba(255, 255, 255, 0.12);
-  --accent: #FAFAFA;            /* near-white ink button on dark */
-  --accent-fg: #0B0B0E;
-  --accent-subtle: rgba(255, 255, 255, 0.06);
-  --highlight: #67E8F9;         /* soft cyan for citations + focus */
-  --highlight-subtle: rgba(103, 232, 249, 0.12);
-  --success: #34D399;
-  --warning: #FCD34D;
-  --danger: #F87171;
-  --ring: rgba(103, 232, 249, 0.5);
+  --bg:                #0E0E10;
+  --surface-1:         #161618;
+  --surface-2:         #1C1C1F;
+  --surface-3:         #232327;
+  --surface-input:     #1A1A1D;
+  --fg:                #EDEDEC;
+  --fg-muted:          #A8A6A0;
+  --fg-subtle:         #76746E;
 
-  --shadow-soft: 0 8px 32px rgba(0, 0, 0, 0.55);
-  --shadow-card: 0 2px 4px rgba(0, 0, 0, 0.35), 0 16px 40px rgba(0, 0, 0, 0.45);
-  --shadow-pop: 0 6px 24px rgba(0, 0, 0, 0.55), 0 32px 80px rgba(0, 0, 0, 0.6);
+  --hairline:          rgba(255, 255, 255, 0.05);
+  --hairline-strong:   rgba(255, 255, 255, 0.09);
+
+  --accent:            #F5F2E8;
+  --accent-fg:         #0E0E10;
+  --accent-subtle:     rgba(245, 242, 232, 0.05);
+
+  --highlight:         #E8B973;        /* warm gold */
+  --highlight-subtle:  rgba(232, 185, 115, 0.10);
+
+  --success:           #6FDDA6;
+  --warning:           #F0C167;
+  --danger:            #F87171;
+  --ring:              rgba(245, 242, 232, 0.22);
+
+  --elev-1:
+    0 1px 2px rgba(0, 0, 0, 0.35),
+    inset 0 1px 0 rgba(255, 255, 255, 0.03);
+  --elev-2:
+    0 2px 4px rgba(0, 0, 0, 0.4),
+    0 8px 20px rgba(0, 0, 0, 0.45),
+    inset 0 1px 0 rgba(255, 255, 255, 0.04);
+  --elev-3:
+    0 4px 8px rgba(0, 0, 0, 0.4),
+    0 18px 40px rgba(0, 0, 0, 0.55),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  --elev-pop:
+    0 8px 16px rgba(0, 0, 0, 0.5),
+    0 32px 80px rgba(0, 0, 0, 0.7),
+    inset 0 1px 0 rgba(255, 255, 255, 0.06);
 }
 
 @theme inline {
   --color-bg: var(--bg);
-  --color-bg-elevated: var(--bg-elevated);
-  --color-bg-subtle: var(--bg-subtle);
+  --color-surface-1: var(--surface-1);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
   --color-fg: var(--fg);
   --color-fg-muted: var(--fg-muted);
   --color-fg-subtle: var(--fg-subtle);
-  --color-border: var(--border);
-  --color-border-strong: var(--border-strong);
   --color-accent: var(--accent);
   --color-accent-fg: var(--accent-fg);
-  --color-accent-subtle: var(--accent-subtle);
   --color-highlight: var(--highlight);
   --color-highlight-subtle: var(--highlight-subtle);
   --color-success: var(--success);
   --color-warning: var(--warning);
   --color-danger: var(--danger);
 
-  --font-sans: "Pretendard Variable", Pretendard, -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo", "Helvetica Neue", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", "SF Mono", ui-monospace, "Cascadia Code", Menlo, monospace;
+  --font-sans:
+    var(--font-geist-sans),
+    "Pretendard Variable", Pretendard,
+    -apple-system, BlinkMacSystemFont, "Segoe UI", "Apple SD Gothic Neo",
+    system-ui, sans-serif;
+  --font-mono:
+    var(--font-geist-mono),
+    "JetBrains Mono", "SF Mono", ui-monospace, Menlo, monospace;
 }
 
 html, body {
@@ -84,73 +141,82 @@ html, body {
   text-rendering: optimizeLegibility;
 }
 
-/* default to dark theme on first paint to avoid flash */
 html { color-scheme: light dark; }
 
 ::selection {
-  background: var(--accent-subtle);
+  background: var(--highlight-subtle);
   color: var(--fg);
 }
 
 *:focus-visible {
   outline: 2px solid var(--ring);
   outline-offset: 2px;
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
-/* hide scrollbar in webkit when not needed */
+/* slim, transparent scrollbar — material style */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: 8px;
+  height: 8px;
 }
 ::-webkit-scrollbar-track { background: transparent; }
 ::-webkit-scrollbar-thumb {
-  background: var(--border-strong);
+  background: var(--hairline-strong);
   border-radius: 999px;
   border: 2px solid transparent;
   background-clip: padding-box;
 }
-::-webkit-scrollbar-thumb:hover { background-color: var(--fg-subtle); background-clip: padding-box; }
-
-/* === reusable utilities === */
-.surface {
-  background: var(--bg-elevated);
-  border: 1px solid var(--border);
-  border-radius: 14px;
+::-webkit-scrollbar-thumb:hover {
+  background-color: var(--fg-subtle);
+  background-clip: padding-box;
 }
-.surface-subtle {
-  background: var(--bg-subtle);
-  border: 1px solid var(--border);
-  border-radius: 10px;
+
+/* === surfaces — *no border by default*, depth via shadow only === */
+.surface {
+  background: var(--surface-1);
+  border-radius: var(--r-lg);
+  box-shadow: var(--elev-2);
+}
+.surface-2 {
+  background: var(--surface-2);
+  border-radius: var(--r-md);
+}
+.surface-3 {
+  background: var(--surface-3);
+  border-radius: var(--r-md);
 }
 
 .btn-accent {
   background: var(--accent);
   color: var(--accent-fg);
-  font-weight: 500;
-  border-radius: 8px;
-  padding: 8px 12px;
-  transition: filter 120ms cubic-bezier(0.16, 1, 0.3, 1);
+  font-weight: 600;
+  border-radius: var(--r-pill);
+  padding: 9px 16px;
+  font-size: 13px;
+  letter-spacing: -0.01em;
+  transition: transform 140ms cubic-bezier(0.16, 1, 0.3, 1), filter 140ms;
+  box-shadow: var(--elev-1);
 }
-.btn-accent:hover { filter: brightness(1.05); }
-.btn-accent:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn-accent:hover { filter: brightness(1.06); }
+.btn-accent:active { transform: scale(0.97); }
+.btn-accent:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
 
 .btn-ghost {
   background: transparent;
   color: var(--fg-muted);
-  border: 1px solid var(--border);
-  border-radius: 8px;
-  padding: 6px 10px;
-  font-size: 0.8125rem;
-  transition: background 120ms, color 120ms;
+  border-radius: var(--r-pill);
+  padding: 7px 12px;
+  font-size: 12.5px;
+  font-weight: 500;
+  transition: background 140ms, color 140ms, transform 140ms cubic-bezier(0.16, 1, 0.3, 1);
 }
-.btn-ghost:hover { background: var(--bg-subtle); color: var(--fg); }
+.btn-ghost:hover { background: var(--surface-2); color: var(--fg); }
+.btn-ghost:active { transform: scale(0.96); }
 
 .kbd {
   font-family: var(--font-mono);
   font-size: 0.6875rem;
-  background: var(--bg-subtle);
-  border: 1px solid var(--border);
+  background: var(--surface-2);
   border-radius: 4px;
   padding: 1px 5px;
   color: var(--fg-muted);
@@ -164,26 +230,21 @@ html { color-scheme: light dark; }
   font-size: 0.6875rem;
   font-weight: 600;
   line-height: 1;
-  padding: 2px 6px;
+  padding: 2px 7px;
   margin: 0 1px;
   border-radius: 999px;
   background: var(--highlight-subtle);
   color: var(--highlight);
   cursor: pointer;
-  transition: filter 120ms, background 120ms;
+  transition: filter 140ms, background 140ms, transform 140ms cubic-bezier(0.16, 1, 0.3, 1);
   vertical-align: 1px;
 }
-.citation-chip:hover { background: var(--highlight); color: var(--bg); }
-
-@keyframes fadeUp {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: translateY(0); }
-}
-.anim-fade-up { animation: fadeUp 180ms cubic-bezier(0.16, 1, 0.3, 1) both; }
+.citation-chip:hover { background: var(--highlight); color: var(--bg); transform: translateY(-1px); }
+.citation-chip:active { transform: scale(0.94); }
 
 @keyframes highlightPulse {
   0%   { box-shadow: 0 0 0 0 var(--highlight); }
-  50%  { box-shadow: 0 0 0 4px var(--highlight-subtle); }
+  50%  { box-shadow: 0 0 0 6px var(--highlight-subtle); }
   100% { box-shadow: 0 0 0 0 transparent; }
 }
 .anim-pulse { animation: highlightPulse 1.4s ease-out 1; }

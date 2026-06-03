@@ -68,7 +68,7 @@ function ThinkingPlaceholder() {
       <div
         aria-hidden
         className="mt-1 grid h-7 w-7 shrink-0 place-items-center rounded-[10px] font-mono text-[12px] font-semibold"
-        style={{ background: "var(--bg-subtle)", color: "var(--fg)", border: "1px solid var(--border)" }}
+        style={{ background: "var(--surface-2)", color: "var(--fg)" }}
       >
         S
       </div>
@@ -77,48 +77,17 @@ function ThinkingPlaceholder() {
           <span className="text-[12px] font-semibold tracking-tight" style={{ color: "var(--fg)" }}>
             Stack Sage
           </span>
-          <span className="text-[10px] uppercase tracking-[0.12em]" style={{ color: "var(--fg-subtle)" }}>
-            thinking
-          </span>
         </div>
-        <div className="flex items-center gap-2 text-[12.5px]" style={{ color: "var(--fg-muted)" }}>
-          <span className="inline-flex gap-[3px]">
-            <Dot delay="0ms" />
-            <Dot delay="120ms" />
-            <Dot delay="240ms" />
-          </span>
-          <RotatingHint />
-        </div>
+        <motion.div
+          className="inline-block text-[13px]"
+          style={{ color: "var(--fg-subtle)" }}
+          animate={{ opacity: [0.4, 1, 0.4] }}
+          transition={{ duration: 1.6, repeat: Infinity, ease: "easeInOut" }}
+        >
+          답변 준비 중…
+        </motion.div>
       </div>
     </motion.div>
-  );
-}
-
-function RotatingHint() {
-  const hints = [
-    "질문 의도 파악 중",
-    "검색 키워드 재작성 중",
-    "RAG 인덱스 탐색 중",
-    "근거 자료 모으는 중",
-    "답변 구성 중",
-  ];
-  const [i, setI] = useState(0);
-  useEffect(() => {
-    const t = setInterval(() => setI((v) => (v + 1) % hints.length), 1400);
-    return () => clearInterval(t);
-  }, []);
-  return (
-    <AnimatePresence mode="wait">
-      <motion.span
-        key={i}
-        initial={{ opacity: 0, y: 3 }}
-        animate={{ opacity: 1, y: 0 }}
-        exit={{ opacity: 0, y: -3 }}
-        transition={{ duration: 0.18 }}
-      >
-        {hints[i]}…
-      </motion.span>
-    </AnimatePresence>
   );
 }
 
@@ -154,17 +123,19 @@ function EmptyState({ onSuggestionClick }: { onSuggestionClick: (t: string) => v
 
       <div className="grid w-full max-w-[560px] grid-cols-1 gap-2 sm:grid-cols-2">
         {ideas.map((q) => (
-          <button
+          <motion.button
             key={q}
             type="button"
             onClick={() => onSuggestionClick(q)}
-            className="group surface-subtle flex items-center justify-between gap-2 px-3 py-2.5 text-left text-[12.5px] transition"
-            style={{ color: "var(--fg)" }}
-            onMouseEnter={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border-strong)";
-            }}
-            onMouseLeave={(e) => {
-              (e.currentTarget as HTMLButtonElement).style.borderColor = "var(--border)";
+            whileHover={{ y: -2 }}
+            whileTap={{ scale: 0.97 }}
+            transition={{ type: "spring", stiffness: 340, damping: 28 }}
+            className="group flex items-center justify-between gap-2 px-4 py-3 text-left text-[12.5px]"
+            style={{
+              color: "var(--fg)",
+              background: "var(--surface-1)",
+              borderRadius: "var(--r-md)",
+              boxShadow: "var(--elev-2)",
             }}
           >
             <span className="leading-snug">{q}</span>
@@ -175,7 +146,7 @@ function EmptyState({ onSuggestionClick }: { onSuggestionClick: (t: string) => v
             >
               ↵
             </span>
-          </button>
+          </motion.button>
         ))}
       </div>
     </div>
@@ -215,13 +186,11 @@ function Bubble({
         <div
           className="max-w-[78%] whitespace-pre-wrap break-words text-[14px] leading-[1.55]"
           style={{
-            background: "var(--bg-subtle)",
+            background: "var(--surface-2)",
             color: "var(--fg)",
-            border: "1px solid var(--border)",
             borderRadius: "var(--r-lg)",
             borderBottomRightRadius: 10,
             padding: "10px 14px",
-            boxShadow: "var(--shadow-card)",
           }}
         >
           {text}
@@ -241,7 +210,7 @@ function Bubble({
       <div
         aria-hidden
         className="mt-1 grid h-7 w-7 shrink-0 place-items-center rounded-[10px] font-mono text-[12px] font-semibold"
-        style={{ background: "var(--bg-subtle)", color: "var(--fg)", border: "1px solid var(--border)" }}
+        style={{ background: "var(--surface-2)", color: "var(--fg)" }}
       >
         S
       </div>
@@ -293,7 +262,7 @@ function ReasoningBlock({ text }: { text: string }) {
       className="text-[12px] leading-snug"
       style={{
         color: "var(--fg-subtle)",
-        borderLeft: "2px solid var(--border-strong)",
+        borderLeft: "2px solid var(--hairline-strong)",
         paddingLeft: 10,
         fontStyle: "italic",
       }}
@@ -386,7 +355,7 @@ function RichText({
               style={{
                 margin: "0.6em 0",
                 padding: "0.2em 0 0.2em 0.9em",
-                borderLeft: "2px solid var(--border-strong)",
+                borderLeft: "2px solid var(--hairline-strong)",
                 color: "var(--fg-muted)",
               }}
             >
@@ -404,7 +373,7 @@ function RichText({
             </a>
           ),
           hr: () => (
-            <hr style={{ border: 0, borderTop: "1px solid var(--border)", margin: "1em 0" }} />
+            <hr style={{ border: 0, borderTop: "1px solid var(--hairline)", margin: "1em 0" }} />
           ),
           code: ({ className, children }) => {
             const isBlock = (className ?? "").includes("language-");
@@ -420,8 +389,8 @@ function RichText({
                 style={{
                   fontFamily: "var(--font-mono)",
                   fontSize: "0.875em",
-                  background: "var(--bg-subtle)",
-                  border: "1px solid var(--border)",
+                  background: "var(--surface-2)",
+                  border: "1px solid var(--hairline)",
                   padding: "1px 5px",
                   borderRadius: 4,
                 }}
@@ -435,8 +404,8 @@ function RichText({
               style={{
                 margin: "0 0 0.85em 0",
                 padding: "12px 14px",
-                background: "var(--bg-subtle)",
-                border: "1px solid var(--border)",
+                background: "var(--surface-2)",
+                border: "1px solid var(--hairline)",
                 borderRadius: 10,
                 overflow: "auto",
                 fontSize: "0.85em",
@@ -454,7 +423,7 @@ function RichText({
                   borderCollapse: "collapse",
                   fontSize: "0.9em",
                   width: "100%",
-                  border: "1px solid var(--border)",
+                  border: "1px solid var(--hairline)",
                   borderRadius: 8,
                   overflow: "hidden",
                 }}
@@ -464,7 +433,7 @@ function RichText({
             </div>
           ),
           thead: ({ children }) => (
-            <thead style={{ background: "var(--bg-subtle)" }}>{children}</thead>
+            <thead style={{ background: "var(--surface-2)" }}>{children}</thead>
           ),
           th: ({ children }) => (
             <th
@@ -472,7 +441,7 @@ function RichText({
                 textAlign: "left",
                 padding: "7px 10px",
                 fontWeight: 600,
-                borderBottom: "1px solid var(--border)",
+                borderBottom: "1px solid var(--hairline)",
                 color: "var(--fg)",
               }}
             >
@@ -483,7 +452,7 @@ function RichText({
             <td
               style={{
                 padding: "7px 10px",
-                borderTop: "1px solid var(--border)",
+                borderTop: "1px solid var(--hairline)",
                 color: "var(--fg-muted)",
                 verticalAlign: "top",
               }}
@@ -585,11 +554,11 @@ function FollowupRow({ onPick }: { onPick: (text: string) => void }) {
           className="rounded-full border px-2.5 py-1 text-[11.5px] transition"
           style={{
             color: "var(--fg-muted)",
-            borderColor: "var(--border)",
+            borderColor: "var(--hairline)",
             background: "transparent",
           }}
           onMouseEnter={(e) => {
-            (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-subtle)";
+            (e.currentTarget as HTMLButtonElement).style.background = "var(--surface-2)";
             (e.currentTarget as HTMLButtonElement).style.color = "var(--fg)";
           }}
           onMouseLeave={(e) => {

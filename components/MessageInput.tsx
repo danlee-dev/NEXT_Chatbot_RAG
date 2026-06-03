@@ -42,10 +42,10 @@ export function MessageInput({
       onSubmit={submit}
       className="flex flex-col gap-2 px-3 pt-2.5 pb-2"
       style={{
-        background: "var(--bg-elevated)",
-        border: "1px solid var(--border)",
-        borderRadius: "var(--r-lg)",
-        boxShadow: "var(--shadow-card)",
+        background: "var(--surface-1)",
+        borderRadius: "var(--r-xl)",
+        boxShadow: "var(--elev-3)",
+        padding: "12px 14px 10px",
       }}
     >
       <textarea
@@ -79,9 +79,9 @@ export function MessageInput({
             disabled={!canSend}
             className="inline-flex items-center justify-center gap-1.5 rounded-[8px] px-3 py-1.5 text-[12px] font-semibold tracking-tight transition"
             style={{
-              background: canSend ? "var(--accent)" : "var(--bg-subtle)",
+              background: canSend ? "var(--accent)" : "var(--surface-2)",
               color: canSend ? "var(--accent-fg)" : "var(--fg-subtle)",
-              border: `1px solid ${canSend ? "transparent" : "var(--border)"}`,
+              border: `1px solid ${canSend ? "transparent" : "var(--hairline)"}`,
               cursor: canSend ? "pointer" : "not-allowed",
             }}
             aria-label="전송"

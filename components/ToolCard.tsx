@@ -40,10 +40,9 @@ export function ToolCard({ part }: { part: ToolPart }) {
       animate={{ opacity: 1, y: 0, scale: 1 }}
       transition={{ type: "spring", stiffness: 380, damping: 32, mass: 0.6 }}
       style={{
-        background: "var(--bg-elevated)",
-        border: "1px solid var(--border)",
+        background: "var(--surface-1)",
         borderRadius: "var(--r-md)",
-        boxShadow: "var(--shadow-card)",
+        boxShadow: "var(--elev-2)",
         padding: "10px 12px 10px 14px",
       }}
       className="overflow-hidden"
@@ -173,10 +172,9 @@ function PayloadBlock({
       <pre
         className="overflow-x-auto whitespace-pre-wrap"
         style={{
-          background: "var(--bg-subtle)",
-          border: "1px solid var(--border)",
-          borderRadius: 8,
-          padding: "8px 10px",
+          background: "var(--surface-2)",
+          borderRadius: 10,
+          padding: "10px 12px",
           fontFamily: "var(--font-mono)",
           fontSize: "11px",
           lineHeight: 1.55,

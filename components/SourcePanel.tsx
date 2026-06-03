@@ -66,12 +66,13 @@ function SourceCard({ source, highlighted }: { source: SourceItem; highlighted: 
       id={`src-${source.n}`}
       className={highlighted ? "anim-pulse" : ""}
       style={{
-        background: "var(--bg-elevated)",
-        border: `1px solid ${highlighted ? "var(--highlight)" : "var(--border)"}`,
+        background: "var(--surface-1)",
         borderRadius: "var(--r-md)",
-        padding: "10px 12px",
-        boxShadow: "var(--shadow-card)",
-        transition: "border-color 200ms, box-shadow 200ms",
+        padding: "12px 14px",
+        boxShadow: highlighted
+          ? "var(--elev-3), 0 0 0 1.5px var(--highlight)"
+          : "var(--elev-2)",
+        transition: "box-shadow 200ms",
       }}
     >
       <div className="flex items-start gap-2">
@@ -141,7 +142,7 @@ function Badge({ children }: { children: React.ReactNode }) {
   return (
     <span
       className="rounded-[4px] px-1.5 py-[1px] font-mono text-[10px] uppercase tracking-[0.06em]"
-      style={{ background: "var(--bg-subtle)", color: "var(--fg-muted)" }}
+      style={{ background: "var(--surface-2)", color: "var(--fg-muted)" }}
     >
       {children}
     </span>

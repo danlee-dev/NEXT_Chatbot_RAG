@@ -34,32 +34,45 @@ const SUGGESTIONS = [
   "Cursor vs Claude Code, 큰 리팩터에 뭐가 나아?",
   "Aider 가 잘 어울리는 워크플로우는?",
   "Codex CLI 의 최근 changelog 요약해줘",
-  "SWE-bench 1위 에이전트는 지금 어디?",
+  "Gemini API function calling 어떻게 써?",
 ];
+
+const NAV_W = 264;
+const INSP_W = 340;
+const SPRING = { type: "spring" as const, stiffness: 340, damping: 32, mass: 0.7 };
 
 export function Chat() {
   const [sessionSources, setSessionSources] = useState<SessionSource[]>([]);
   const [highlightN, setHighlightN] = useState<number | null>(null);
-  const [showInspector, setShowInspector] = useState(false);
-  const [showNav, setShowNav] = useState(false);
+  const [navOpen, setNavOpen] = useState(true);
+  const [inspectorOpen, setInspectorOpen] = useState(true);
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const update = () => {
+      const m = window.matchMedia("(max-width: 1023px)").matches;
+      setIsMobile(m);
+      if (m) {
+        setNavOpen(false);
+        setInspectorOpen(false);
+      }
+    };
+    update();
+    window.addEventListener("resize", update);
+    return () => window.removeEventListener("resize", update);
+  }, []);
 
   const transport = useMemo(() => new DefaultChatTransport({ api: "/api/chat" }), []);
   const { messages, sendMessage, status, error, setMessages } = useChat({ transport });
   const isBusy = status === "submitted" || status === "streaming";
 
   const latestSources = useMemo<SourceItem[]>(() => {
-    // 가장 최근 assistant 메시지에서 tool-rag_search / tool-fetch_url /
-    // tool-compare_tools / tool-find_code_examples 결과들을 모두 수집해 카드로.
     for (let i = messages.length - 1; i >= 0; i--) {
       const m = messages[i];
       if (m.role !== "assistant") continue;
       const collected: SourceItem[] = [];
       let n = 1;
-      type PartLite = {
-        type: string;
-        state?: string;
-        output?: unknown;
-      };
+      type PartLite = { type: string; state?: string; output?: unknown };
       const parts = (m.parts ?? []) as PartLite[];
       for (const part of parts) {
         if (part.state !== "output-available") continue;
@@ -108,21 +121,21 @@ export function Chat() {
     return [];
   }, [messages]);
 
-  // 새 답변이 도착하면 inspector 자동 열기 (모바일에서는 사용자가 누르게 두는 게 덜 거슬림)
+  // 새 답변이 도착하면 inspector 자동 열기 (모바일은 자동 X)
   const prevLen = useRef(messages.length);
   useEffect(() => {
-    if (messages.length > prevLen.current && latestSources.length > 0) {
-      setShowInspector(true);
+    if (!isMobile && messages.length > prevLen.current && latestSources.length > 0) {
+      setInspectorOpen(true);
     }
     prevLen.current = messages.length;
-  }, [messages.length, latestSources.length]);
+  }, [messages.length, latestSources.length, isMobile]);
 
   function handleSend(text: string) {
     sendMessage({ text }, { body: { sessionSources } });
   }
 
   function handleCitationClick(n: number) {
-    setShowInspector(true);
+    setInspectorOpen(true);
     setHighlightN(n);
     requestAnimationFrame(() => {
       const el = document.getElementById(`src-${n}`);
@@ -136,77 +149,91 @@ export function Chat() {
   function handleRemoveSource(url: string) {
     setSessionSources((prev) => prev.filter((s) => s.url !== url));
   }
-
   function handleClear() {
     setMessages([]);
     setHighlightN(null);
   }
 
   return (
-    <div className="flex h-full w-full" style={{ background: "var(--bg)" }}>
-      {/* === Left nav === */}
-      <aside
-        className={[
-          "fixed inset-y-0 left-0 z-30 flex w-[260px] flex-col gap-5 border-r px-4 py-5 lg:static lg:translate-x-0",
-          showNav ? "translate-x-0" : "-translate-x-full",
-          "transition-transform duration-200",
-        ].join(" ")}
-        style={{ background: "var(--bg-elevated)", borderColor: "var(--border)" }}
-      >
-        <CharacterCard character={characterConfig} />
-
-        <div className="space-y-2">
-          <SectionLabel>도구 카탈로그</SectionLabel>
-          <CatalogList />
-        </div>
-
-        <div className="space-y-2">
-          <SectionLabel>제안</SectionLabel>
-          <ul className="flex flex-col gap-1.5">
-            {SUGGESTIONS.map((s) => (
-              <li key={s}>
-                <button
-                  type="button"
-                  onClick={() => handleSend(s)}
-                  className="block w-full rounded-[8px] px-2.5 py-2 text-left text-[12.5px] leading-snug transition"
-                  style={{ color: "var(--fg-muted)", border: "1px solid var(--border)" }}
-                  onMouseEnter={(e) => {
-                    (e.currentTarget as HTMLButtonElement).style.background = "var(--bg-subtle)";
-                    (e.currentTarget as HTMLButtonElement).style.color = "var(--fg)";
-                  }}
-                  onMouseLeave={(e) => {
-                    (e.currentTarget as HTMLButtonElement).style.background = "transparent";
-                    (e.currentTarget as HTMLButtonElement).style.color = "var(--fg-muted)";
-                  }}
-                >
-                  {s}
-                </button>
-              </li>
-            ))}
-          </ul>
-        </div>
-
-        <div className="mt-auto space-y-2">
-          <button
-            type="button"
-            onClick={handleClear}
-            className="btn-ghost w-full"
-            style={{ textAlign: "left" }}
+    <div className="flex h-full w-full overflow-hidden" style={{ background: "var(--bg)" }}>
+      {/* ─── Left Nav ─── */}
+      <AnimatePresence initial={false}>
+        {navOpen ? (
+          <motion.aside
+            key="nav"
+            initial={isMobile ? { x: -NAV_W } : { width: 0, opacity: 0 }}
+            animate={isMobile ? { x: 0 } : { width: NAV_W, opacity: 1 }}
+            exit={isMobile ? { x: -NAV_W } : { width: 0, opacity: 0 }}
+            transition={SPRING}
+            className={[
+              "z-30 flex flex-col overflow-hidden",
+              isMobile ? "fixed inset-y-0 left-0" : "relative",
+            ].join(" ")}
+            style={{
+              background: "var(--surface-1)",
+              boxShadow: isMobile ? "var(--elev-pop)" : "var(--elev-1)",
+              width: isMobile ? NAV_W : undefined,
+            }}
           >
-            대화 초기화
-          </button>
-        </div>
-      </aside>
+            <div className="flex h-full w-[264px] flex-col gap-6 px-5 py-5 overflow-y-auto">
+              <CharacterCard character={characterConfig} />
+              <Section title="도구 카탈로그">
+                <CatalogList />
+              </Section>
+              <Section title="제안">
+                <ul className="flex flex-col gap-1.5">
+                  {SUGGESTIONS.map((s) => (
+                    <li key={s}>
+                      <PressyButton
+                        onClick={() => handleSend(s)}
+                        className="block w-full text-left px-3 py-2.5 text-[12.5px] leading-snug"
+                        style={{
+                          color: "var(--fg-muted)",
+                          background: "var(--surface-2)",
+                          borderRadius: "var(--r-md)",
+                        }}
+                        hoverStyle={{ background: "var(--surface-3)", color: "var(--fg)" }}
+                      >
+                        {s}
+                      </PressyButton>
+                    </li>
+                  ))}
+                </ul>
+              </Section>
+              <div className="mt-auto">
+                <PressyButton
+                  onClick={handleClear}
+                  className="w-full px-3 py-2 text-[12.5px] font-medium"
+                  style={{
+                    color: "var(--fg-muted)",
+                    background: "var(--surface-2)",
+                    borderRadius: "var(--r-pill)",
+                  }}
+                  hoverStyle={{ background: "var(--surface-3)", color: "var(--fg)" }}
+                >
+                  대화 초기화
+                </PressyButton>
+              </div>
+            </div>
+          </motion.aside>
+        ) : null}
+      </AnimatePresence>
 
-      {/* === Center main === */}
-      <main className="flex min-w-0 flex-1 flex-col">
+      {/* ─── Center Main ─── */}
+      <motion.main
+        layout
+        transition={SPRING}
+        className="flex min-w-0 flex-1 flex-col"
+      >
         <Topbar
-          onMenuToggle={() => setShowNav((v) => !v)}
-          onInspectorToggle={() => setShowInspector((v) => !v)}
+          navOpen={navOpen}
+          inspectorOpen={inspectorOpen}
+          onToggleNav={() => setNavOpen((v) => !v)}
+          onToggleInspector={() => setInspectorOpen((v) => !v)}
           sourceCount={latestSources.length}
         />
 
-        <div className="mx-auto flex w-full max-w-[760px] flex-1 flex-col gap-4 px-5 py-6 min-h-0">
+        <div className="mx-auto flex w-full max-w-[780px] flex-1 flex-col gap-4 px-6 py-6 min-h-0">
           <div className="flex-1 overflow-y-auto pr-1">
             <MessageList
               messages={messages}
@@ -219,11 +246,11 @@ export function Chat() {
 
           {error ? (
             <div
-              className="rounded-[10px] px-3 py-2 text-[12.5px]"
+              className="px-4 py-3 text-[12.5px]"
               style={{
                 background: "rgba(248, 113, 113, 0.08)",
                 color: "var(--danger)",
-                border: "1px solid rgba(248, 113, 113, 0.25)",
+                borderRadius: "var(--r-md)",
               }}
             >
               {error.message}
@@ -232,37 +259,52 @@ export function Chat() {
 
           <MessageInput onSend={handleSend} disabled={isBusy} />
         </div>
-      </main>
+      </motion.main>
 
-      {/* === Right inspector === */}
-      <aside
-        className={[
-          "fixed inset-y-0 right-0 z-30 flex w-[340px] flex-col gap-4 border-l px-4 py-5 lg:static lg:translate-x-0",
-          showInspector ? "translate-x-0" : "translate-x-full",
-          "transition-transform duration-200",
-        ].join(" ")}
-        style={{ background: "var(--bg-elevated)", borderColor: "var(--border)" }}
-      >
-        <IngestPanel
-          sessionSources={sessionSources}
-          onAdd={handleAddSource}
-          onRemove={handleRemoveSource}
-        />
-        <SourcePanel sources={latestSources} highlightN={highlightN} />
-      </aside>
+      {/* ─── Right Inspector ─── */}
+      <AnimatePresence initial={false}>
+        {inspectorOpen ? (
+          <motion.aside
+            key="inspector"
+            initial={isMobile ? { x: INSP_W } : { width: 0, opacity: 0 }}
+            animate={isMobile ? { x: 0 } : { width: INSP_W, opacity: 1 }}
+            exit={isMobile ? { x: INSP_W } : { width: 0, opacity: 0 }}
+            transition={SPRING}
+            className={[
+              "z-30 flex flex-col overflow-hidden",
+              isMobile ? "fixed inset-y-0 right-0" : "relative",
+            ].join(" ")}
+            style={{
+              background: "var(--surface-1)",
+              boxShadow: isMobile ? "var(--elev-pop)" : "var(--elev-1)",
+              width: isMobile ? INSP_W : undefined,
+            }}
+          >
+            <div className="flex h-full w-[340px] flex-col gap-5 px-5 py-5 overflow-y-auto">
+              <IngestPanel
+                sessionSources={sessionSources}
+                onAdd={handleAddSource}
+                onRemove={handleRemoveSource}
+              />
+              <SourcePanel sources={latestSources} highlightN={highlightN} />
+            </div>
+          </motion.aside>
+        ) : null}
+      </AnimatePresence>
 
       {/* mobile backdrop */}
       <AnimatePresence>
-        {(showNav || showInspector) ? (
+        {isMobile && (navOpen || inspectorOpen) ? (
           <motion.div
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             transition={{ duration: 0.18 }}
-            className="fixed inset-0 z-20 bg-black/40 lg:hidden"
+            className="fixed inset-0 z-20"
+            style={{ background: "rgba(0,0,0,0.45)" }}
             onClick={() => {
-              setShowNav(false);
-              setShowInspector(false);
+              setNavOpen(false);
+              setInspectorOpen(false);
             }}
           />
         ) : null}
@@ -271,37 +313,40 @@ export function Chat() {
   );
 }
 
-function SectionLabel({ children }: { children: React.ReactNode }) {
+function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div
-      className="text-[10px] font-semibold uppercase tracking-[0.12em]"
-      style={{ color: "var(--fg-subtle)" }}
-    >
+    <section className="space-y-2.5">
+      <div
+        className="text-[10px] font-semibold uppercase tracking-[0.14em]"
+        style={{ color: "var(--fg-subtle)" }}
+      >
+        {title}
+      </div>
       {children}
-    </div>
+    </section>
   );
 }
 
 function CatalogList() {
   const tools: { name: string; meta: string }[] = [
-    { name: "Claude Code", meta: "CLI · Anthropic" },
-    { name: "Cursor", meta: "IDE fork" },
-    { name: "Codex CLI", meta: "CLI · OpenAI" },
-    { name: "Aider", meta: "CLI · OSS" },
-    { name: "Windsurf", meta: "IDE · Codeium" },
-    { name: "Cline", meta: "VSCode ext" },
-    { name: "Zed AI", meta: "Editor native" },
-    { name: "Continue", meta: "VSCode/JB ext" },
+    { name: "Claude Code", meta: "CLI" },
+    { name: "Cursor", meta: "IDE" },
+    { name: "Codex CLI", meta: "CLI" },
+    { name: "Aider", meta: "CLI" },
+    { name: "Windsurf", meta: "IDE" },
+    { name: "Cline", meta: "VSCode" },
+    { name: "Zed AI", meta: "Editor" },
+    { name: "Continue", meta: "ext" },
   ];
   return (
-    <ul className="flex flex-col gap-[2px]">
+    <ul className="flex flex-col gap-px">
       {tools.map((t) => (
         <li
           key={t.name}
-          className="flex items-center justify-between rounded-[6px] px-2 py-1.5 text-[12.5px]"
-          style={{ color: "var(--fg-muted)" }}
+          className="flex items-center justify-between rounded-[10px] px-3 py-2 text-[12.5px]"
+          style={{ color: "var(--fg)" }}
         >
-          <span style={{ color: "var(--fg)" }}>{t.name}</span>
+          <span>{t.name}</span>
           <span className="font-mono text-[10.5px]" style={{ color: "var(--fg-subtle)" }}>
             {t.meta}
           </span>
@@ -312,49 +357,137 @@ function CatalogList() {
 }
 
 function Topbar({
-  onMenuToggle,
-  onInspectorToggle,
+  navOpen,
+  inspectorOpen,
+  onToggleNav,
+  onToggleInspector,
   sourceCount,
 }: {
-  onMenuToggle: () => void;
-  onInspectorToggle: () => void;
+  navOpen: boolean;
+  inspectorOpen: boolean;
+  onToggleNav: () => void;
+  onToggleInspector: () => void;
   sourceCount: number;
 }) {
   return (
     <header
-      className="flex h-[52px] items-center justify-between border-b px-4"
-      style={{ borderColor: "var(--border)", background: "var(--bg)" }}
+      className="flex h-[56px] shrink-0 items-center justify-between px-4"
+      style={{ background: "var(--bg)" }}
     >
-      <div className="flex items-center gap-2">
-        <button
-          type="button"
-          onClick={onMenuToggle}
-          className="btn-ghost lg:hidden"
-          aria-label="navigation 토글"
-        >
-          ☰
-        </button>
-        <div className="text-[12.5px] font-medium tracking-tight" style={{ color: "var(--fg-muted)" }}>
+      <div className="flex items-center gap-1">
+        <IconToggle
+          active={navOpen}
+          onClick={onToggleNav}
+          label={navOpen ? "왼쪽 패널 닫기" : "왼쪽 패널 열기"}
+          icon={<IconLeftPanel open={navOpen} />}
+        />
+        <div className="ml-2 text-[13px] font-semibold tracking-tight" style={{ color: "var(--fg)" }}>
           Stack Sage
-          <span className="opacity-50"> · </span>
-          <span style={{ color: "var(--fg-subtle)" }}>AI coding agent advisor</span>
         </div>
+        <span className="ml-2 text-[11.5px]" style={{ color: "var(--fg-subtle)" }}>
+          AI coding agent advisor
+        </span>
       </div>
 
-      <button
-        type="button"
-        onClick={onInspectorToggle}
-        className="btn-ghost flex items-center gap-2"
-        aria-label="출처 패널 토글"
-      >
+      <div className="flex items-center gap-2">
         <span
-          className="font-mono text-[11px]"
-          style={{ color: sourceCount > 0 ? "var(--highlight)" : "var(--fg-subtle)" }}
+          className="font-mono text-[11px] tabular-nums px-2 py-1 rounded-[8px]"
+          style={{ color: sourceCount > 0 ? "var(--highlight)" : "var(--fg-subtle)", background: sourceCount > 0 ? "var(--highlight-subtle)" : "transparent" }}
         >
-          {sourceCount}
+          {sourceCount} sources
         </span>
-        <span>sources</span>
-      </button>
+        <IconToggle
+          active={inspectorOpen}
+          onClick={onToggleInspector}
+          label={inspectorOpen ? "오른쪽 패널 닫기" : "오른쪽 패널 열기"}
+          icon={<IconRightPanel open={inspectorOpen} />}
+        />
+      </div>
     </header>
+  );
+}
+
+function IconToggle({
+  active,
+  onClick,
+  label,
+  icon,
+}: {
+  active: boolean;
+  onClick: () => void;
+  label: string;
+  icon: React.ReactNode;
+}) {
+  return (
+    <motion.button
+      type="button"
+      onClick={onClick}
+      aria-label={label}
+      whileHover={{ scale: 1.05 }}
+      whileTap={{ scale: 0.92 }}
+      transition={SPRING}
+      className="grid h-9 w-9 place-items-center"
+      style={{
+        background: active ? "var(--surface-2)" : "transparent",
+        color: active ? "var(--fg)" : "var(--fg-muted)",
+        borderRadius: "var(--r-md)",
+      }}
+    >
+      {icon}
+    </motion.button>
+  );
+}
+
+function IconLeftPanel({ open }: { open: boolean }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="3" width="12" height="10" rx="2.2" />
+      <line x1="6" y1="3" x2="6" y2="13" />
+      {open ? null : <line x1="9" y1="6" x2="11" y2="8" />}
+      {open ? null : <line x1="11" y1="8" x2="9" y2="10" />}
+    </svg>
+  );
+}
+
+function IconRightPanel({ open }: { open: boolean }) {
+  return (
+    <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="2" y="3" width="12" height="10" rx="2.2" />
+      <line x1="10" y1="3" x2="10" y2="13" />
+      {open ? null : <line x1="7" y1="6" x2="5" y2="8" />}
+      {open ? null : <line x1="5" y1="8" x2="7" y2="10" />}
+    </svg>
+  );
+}
+
+/** 일반 버튼 + spring press/release. CSS hover 처리도 inline. */
+function PressyButton({
+  children,
+  onClick,
+  className,
+  style,
+  hoverStyle,
+}: {
+  children: React.ReactNode;
+  onClick?: () => void;
+  className?: string;
+  style?: React.CSSProperties;
+  hoverStyle?: React.CSSProperties;
+}) {
+  const [hover, setHover] = useState(false);
+  return (
+    <motion.button
+      type="button"
+      onClick={onClick}
+      whileHover={{ y: -1 }}
+      whileTap={{ scale: 0.97 }}
+      transition={SPRING}
+      onMouseEnter={() => setHover(true)}
+      onMouseLeave={() => setHover(false)}
+      className={className}
+      style={{ ...style, ...(hover && hoverStyle ? hoverStyle : null) }}
+    >
+      {children}
+    </motion.button>
   );
 }
