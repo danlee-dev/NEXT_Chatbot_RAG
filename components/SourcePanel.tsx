@@ -1,43 +1,143 @@
 "use client";
 
-import type { RetrievedChunk } from "@/lib/ai/rag";
+import { useState } from "react";
+import type { SourceItem } from "@/components/Chat";
 
-/**
- * RAG 검색 결과(출처) 표시 UI — Session 2에서 채웁니다.
- *
- * 챗봇이 어떤 chunk를 참고해 답했는지 학회원이 눈으로 확인할 수 있어야
- * RAG가 제대로 동작하는지 디버깅하기 쉽습니다.
- *
- * TODO SESSION 2-8: (구현 완료) 받은 chunks를 카드로 렌더.
- *   /api/search 호출은 Chat.tsx가 답변 완료 후 수행해서 chunks를 내려준다.
- */
-export function SourcePanel({ chunks }: { chunks: RetrievedChunk[] }) {
-  if (!chunks || chunks.length === 0) {
-    return (
-      <section className="rounded-2xl border border-dashed border-zinc-300 bg-zinc-50 p-4 text-sm text-zinc-600 dark:border-zinc-700 dark:bg-zinc-900 dark:text-zinc-400">
-        <p className="font-medium">SourcePanel — Session 2에서 구현 예정</p>
-        <p className="mt-1 text-xs">
-          최근 답변에 사용된 chunk들을 여기 표시합니다.
-        </p>
-      </section>
-    );
-  }
-
+export function SourcePanel({
+  sources,
+  highlightN,
+}: {
+  sources: SourceItem[];
+  highlightN: number | null;
+}) {
   return (
-    <section className="space-y-2">
-      {chunks.map((chunk, i) => (
-        <article
-          key={i}
-          className="rounded-xl border border-zinc-200 bg-white p-3 text-sm dark:border-zinc-800 dark:bg-zinc-900"
+    <section className="flex min-h-0 flex-1 flex-col gap-2.5 overflow-hidden">
+      <div className="flex items-baseline justify-between">
+        <h3
+          className="text-[11px] font-semibold uppercase tracking-[0.12em]"
+          style={{ color: "var(--fg-subtle)" }}
         >
-          <div className="mb-1 text-xs text-zinc-500">
-            #{i + 1} · similarity {chunk.similarity.toFixed(3)}
-          </div>
-          <p className="whitespace-pre-wrap text-zinc-800 dark:text-zinc-200">
-            {chunk.content}
-          </p>
-        </article>
-      ))}
+          출처
+        </h3>
+        <span className="font-mono text-[10.5px]" style={{ color: "var(--fg-subtle)" }}>
+          {sources.length}
+        </span>
+      </div>
+
+      {sources.length === 0 ? (
+        <div
+          className="surface-subtle px-3 py-4 text-[11.5px] leading-snug"
+          style={{ color: "var(--fg-subtle)" }}
+        >
+          답변이 도착하면 RAG 가 사용한 근거 chunk 가 여기 카드로 표시된다.
+          본문의 <span className="citation-chip" aria-hidden>1</span> 같은 인용 번호를 누르면
+          해당 카드로 스크롤된다.
+        </div>
+      ) : (
+        <ul className="flex flex-col gap-2 overflow-y-auto pr-1">
+          {sources.map((s) => (
+            <SourceCard key={s.n} source={s} highlighted={s.n === highlightN} />
+          ))}
+        </ul>
+      )}
     </section>
   );
+}
+
+function SourceCard({ source, highlighted }: { source: SourceItem; highlighted: boolean }) {
+  const [open, setOpen] = useState(false);
+  const host = source.url ? safeHost(source.url) : null;
+
+  return (
+    <li
+      id={`src-${source.n}`}
+      className={highlighted ? "anim-pulse" : ""}
+      style={{
+        background: "var(--bg-elevated)",
+        border: `1px solid ${highlighted ? "var(--highlight)" : "var(--border)"}`,
+        borderRadius: 10,
+        padding: "10px 12px",
+        transition: "border-color 200ms",
+      }}
+    >
+      <div className="flex items-start gap-2">
+        <span
+          className="mt-[1px] inline-flex h-[18px] min-w-[20px] items-center justify-center rounded-full px-1 font-mono text-[10.5px] font-semibold"
+          style={{
+            background: highlighted ? "var(--highlight)" : "var(--highlight-subtle)",
+            color: highlighted ? "var(--bg)" : "var(--highlight)",
+          }}
+        >
+          {source.n}
+        </span>
+        <div className="min-w-0 flex-1">
+          <div
+            className="truncate text-[12.5px] font-semibold tracking-tight"
+            style={{ color: "var(--fg)" }}
+            title={source.title ?? source.url ?? ""}
+          >
+            {source.title ?? "(no title)"}
+          </div>
+          <div className="mt-0.5 flex items-center gap-1.5 font-mono text-[10.5px]" style={{ color: "var(--fg-subtle)" }}>
+            {source.tag ? <Badge>{source.tag}</Badge> : null}
+            {host ? <span className="truncate">{host}</span> : null}
+            {source.score > 0 ? <span className="opacity-60">· {source.score.toFixed(2)}</span> : null}
+          </div>
+        </div>
+      </div>
+
+      <p
+        className={[
+          "mt-2 text-[12.5px] leading-[1.55]",
+          open ? "" : "line-clamp-3",
+        ].join(" ")}
+        style={{ color: "var(--fg-muted)", whiteSpace: "pre-wrap" }}
+      >
+        {source.content}
+      </p>
+
+      <div className="mt-2 flex items-center gap-2">
+        <button
+          type="button"
+          onClick={() => setOpen((v) => !v)}
+          className="text-[11px] font-medium tracking-tight transition"
+          style={{ color: "var(--fg-muted)" }}
+          onMouseEnter={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "var(--fg)")}
+          onMouseLeave={(e) => ((e.currentTarget as HTMLButtonElement).style.color = "var(--fg-muted)")}
+        >
+          {open ? "접기" : "더 보기"}
+        </button>
+        {source.url ? (
+          <a
+            href={source.url}
+            target="_blank"
+            rel="noreferrer"
+            className="text-[11px] font-medium tracking-tight transition"
+            style={{ color: "var(--highlight)" }}
+          >
+            원문 ↗
+          </a>
+        ) : null}
+      </div>
+    </li>
+  );
+}
+
+function Badge({ children }: { children: React.ReactNode }) {
+  return (
+    <span
+      className="rounded-[4px] px-1.5 py-[1px] font-mono text-[10px] uppercase tracking-[0.06em]"
+      style={{ background: "var(--bg-subtle)", color: "var(--fg-muted)" }}
+    >
+      {children}
+    </span>
+  );
+}
+
+function safeHost(url: string): string {
+  try {
+    return new URL(url).host;
+  } catch {
+    return "";
+  }
 }

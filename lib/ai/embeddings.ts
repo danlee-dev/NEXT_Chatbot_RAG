@@ -1,8 +1,8 @@
-// TODO SESSION 2-2: embed/embedMany로 OpenAI embedding 생성.
 import { embed, embedMany } from "ai";
 import { openai } from "@ai-sdk/openai";
 
-const EMBEDDING_MODEL = "text-embedding-3-small"; // schema.sql vector(1536)과 일치
+export const EMBEDDING_MODEL = "text-embedding-3-small";
+export const EMBEDDING_DIM = 1536;
 
 export async function createEmbedding(text: string): Promise<number[]> {
   const { embedding } = await embed({
@@ -19,4 +19,13 @@ export async function createEmbeddings(texts: string[]): Promise<number[][]> {
     values: texts,
   });
   return embeddings;
+}
+
+/**
+ * sqlite-vec는 Float32Array의 raw bytes를 BLOB으로 받는다.
+ * JSON 직렬화보다 4배 빠르고 저장 공간도 작다.
+ */
+export function embeddingToBuffer(v: number[]): Buffer {
+  const f32 = new Float32Array(v);
+  return Buffer.from(f32.buffer, f32.byteOffset, f32.byteLength);
 }

@@ -1,33 +1,32 @@
 import type { Metadata } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+// Pretendard는 globals.css 에서 CDN import. monospace 만 next/font 로.
+const jetbrains = JetBrains_Mono({
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  variable: "--font-jetbrains",
+  display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "NEXT AI MVP — 캐릭터 챗봇",
-  description: "Session 1: 나만의 캐릭터 챗봇 만들고 Vercel에 배포하기",
+  title: "Stack Sage — AI 코딩 도구 메타 어드바이저",
+  description:
+    "Claude Code · Cursor · Codex CLI · Aider · Windsurf · Cline 등 AI 코딩 에이전트를 비교·추천하는 RAG 챗봇",
 };
 
 export default function RootLayout({
   children,
-}: Readonly<{
-  children: React.ReactNode;
-}>) {
+}: Readonly<{ children: React.ReactNode }>) {
   return (
-    <html
-      lang="ko"
-      className={`${geistSans.variable} ${geistMono.variable} h-full antialiased`}
-    >
-      <body className="min-h-full flex flex-col">{children}</body>
+    <html lang="ko" data-theme="dark" className={`${jetbrains.variable} h-full`}>
+      <head>
+        <link
+          rel="stylesheet"
+          href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/variable/pretendardvariable-dynamic-subset.min.css"
+        />
+      </head>
+      <body className="min-h-full">{children}</body>
     </html>
   );
 }

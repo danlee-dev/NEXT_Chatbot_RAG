@@ -39,3 +39,8 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# SQLite RAG store: keep rag.db (built artifact for Vercel), drop ephemerals
+data/*-wal
+data/*-shm
+data/*.log

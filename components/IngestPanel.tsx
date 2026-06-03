@@ -1,80 +1,151 @@
 "use client";
 
 import { useState } from "react";
+import type { SessionSource } from "@/components/Chat";
 
-// TODO SESSION 2-7: textarea + ingest 버튼 + 성공/실패 메시지.
 type Status =
   | { kind: "idle" }
   | { kind: "loading" }
   | { kind: "ok" }
   | { kind: "error"; message: string };
 
-export function IngestPanel({ accessCode }: { accessCode: string }) {
-  const [text, setText] = useState("");
+export function IngestPanel({
+  sessionSources,
+  onAdd,
+  onRemove,
+}: {
+  sessionSources: SessionSource[];
+  onAdd: (s: SessionSource) => void;
+  onRemove: (url: string) => void;
+}) {
+  const [url, setUrl] = useState("");
   const [status, setStatus] = useState<Status>({ kind: "idle" });
 
-  const canSubmit = text.trim().length > 0 && status.kind !== "loading";
+  const canSubmit = /^https?:\/\//i.test(url.trim()) && status.kind !== "loading";
 
-  async function handleIngest() {
+  async function handleAdd() {
     if (!canSubmit) return;
     setStatus({ kind: "loading" });
     try {
       const res = await fetch("/api/ingest", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ text, accessCode }),
+        body: JSON.stringify({ url: url.trim() }),
       });
       const data = await res.json();
       if (!res.ok) {
         setStatus({ kind: "error", message: data.error ?? "알 수 없는 오류" });
         return;
       }
+      onAdd(data.source as SessionSource);
+      setUrl("");
       setStatus({ kind: "ok" });
-      setText("");
+      setTimeout(() => setStatus({ kind: "idle" }), 1800);
     } catch {
-      setStatus({ kind: "error", message: "네트워크 오류가 발생했습니다." });
+      setStatus({ kind: "error", message: "네트워크 오류" });
     }
   }
 
   return (
-    <section className="space-y-2 rounded-2xl border border-zinc-200 bg-white p-4 shadow-sm dark:border-zinc-800 dark:bg-zinc-900">
-      <div>
-        <h3 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
-          자기소개 학습 (RAG)
+    <section className="space-y-2.5">
+      <div className="flex items-baseline justify-between">
+        <h3
+          className="text-[11px] font-semibold uppercase tracking-[0.12em]"
+          style={{ color: "var(--fg-subtle)" }}
+        >
+          세션 소스
         </h3>
-        <p className="mt-0.5 text-xs text-zinc-500 dark:text-zinc-400">
-          본문을 넣고 저장하면 챗봇이 그 내용을 근거로 답합니다.
-        </p>
+        <span className="font-mono text-[10.5px]" style={{ color: "var(--fg-subtle)" }}>
+          {sessionSources.length}
+        </span>
       </div>
 
-      <textarea
-        value={text}
-        onChange={(e) => setText(e.target.value)}
-        rows={5}
-        placeholder="예) 나는 AI와 창업에 관심이 많고, Next.js로 MVP를 만든다..."
-        className="w-full resize-none rounded-lg border border-zinc-300 bg-white px-2.5 py-2 text-sm text-zinc-900 outline-none focus:border-indigo-500 dark:border-zinc-700 dark:bg-zinc-800 dark:text-zinc-100"
-        disabled={status.kind === "loading"}
-      />
+      <div className="surface-subtle flex items-center gap-1 p-1.5">
+        <input
+          type="url"
+          value={url}
+          onChange={(e) => setUrl(e.target.value)}
+          placeholder="https://… URL 추가"
+          className="block w-full border-0 bg-transparent px-2 text-[12.5px] outline-none"
+          style={{ color: "var(--fg)" }}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") {
+              e.preventDefault();
+              handleAdd();
+            }
+          }}
+          disabled={status.kind === "loading"}
+        />
+        <button
+          type="button"
+          onClick={handleAdd}
+          disabled={!canSubmit}
+          className="shrink-0 rounded-[6px] px-2 py-1 font-mono text-[11px] transition"
+          style={{
+            background: canSubmit ? "var(--fg)" : "transparent",
+            color: canSubmit ? "var(--bg)" : "var(--fg-subtle)",
+            border: `1px solid ${canSubmit ? "transparent" : "var(--border)"}`,
+            cursor: canSubmit ? "pointer" : "not-allowed",
+          }}
+        >
+          {status.kind === "loading" ? "…" : "add"}
+        </button>
+      </div>
 
-      <button
-        type="button"
-        onClick={handleIngest}
-        disabled={!canSubmit}
-        className="w-full rounded-lg bg-indigo-600 px-3 py-2 text-sm font-medium text-white transition hover:bg-indigo-700 disabled:cursor-not-allowed disabled:opacity-50"
-      >
-        {status.kind === "loading" ? "저장 중..." : "학습시키기"}
-      </button>
-
-      {status.kind === "ok" ? (
-        <p className="text-xs text-green-600 dark:text-green-400">
-          저장 완료! 이제 챗봇에게 물어보세요.
-        </p>
-      ) : null}
       {status.kind === "error" ? (
-        <p className="text-xs text-red-600 dark:text-red-400">
-          오류: {status.message}
-        </p>
+        <div className="text-[11.5px]" style={{ color: "var(--danger)" }}>
+          {status.message}
+        </div>
       ) : null}
+
+      {sessionSources.length === 0 ? (
+        <p className="text-[11.5px] leading-snug" style={{ color: "var(--fg-subtle)" }}>
+          URL 을 추가하면 그 페이지의 발췌가 다음 답변에 함께 반영된다. 세션 동안만 유지.
+        </p>
+      ) : (
+        <ul className="flex flex-col gap-1.5">
+          {sessionSources.map((s) => (
+            <li
+              key={s.url}
+              className="group flex items-center justify-between gap-2 rounded-[8px] border px-2.5 py-1.5"
+              style={{ borderColor: "var(--border)", background: "var(--bg)" }}
+            >
+              <div className="min-w-0 flex-1">
+                <div
+                  className="truncate text-[12px] font-medium"
+                  style={{ color: "var(--fg)" }}
+                  title={s.title ?? s.url}
+                >
+                  {s.title ?? s.url}
+                </div>
+                <div
+                  className="truncate font-mono text-[10.5px]"
+                  style={{ color: "var(--fg-subtle)" }}
+                >
+                  {hostOf(s.url)}
+                </div>
+              </div>
+              <button
+                type="button"
+                onClick={() => onRemove(s.url)}
+                aria-label="제거"
+                className="shrink-0 font-mono text-[12px] opacity-50 transition hover:opacity-100"
+                style={{ color: "var(--fg-muted)" }}
+              >
+                ×
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
     </section>
   );
+}
+
+function hostOf(url: string): string {
+  try {
+    return new URL(url).host;
+  } catch {
+    return url;
+  }
 }
